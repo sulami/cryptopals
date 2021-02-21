@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::iter::repeat;
+
 fn parse_hex(c: char) -> u8 {
     u8::from_str_radix(c.to_string().as_str(), 16)
         .expect("Failed to parse hex char")
@@ -51,6 +54,41 @@ fn fixed_xor(a: Vec<u8>, b: Vec<u8>) -> Vec<u8> {
         .collect()
 }
 
+fn score_string(s: String) -> f32 {
+    let expected: HashMap<char, f32> = [
+        ('E', 11.1607), ('A', 8.4966), ('R', 7.5809), ('I', 7.5448),
+        ('O', 7.1635), ('T', 6.9509), ('N', 6.6544), ('S', 5.7351),
+        ('L', 5.4893), ('C', 4.5388), ('U', 3.6308), ('D', 3.3844),
+        ('P', 3.1671), ('M', 3.0129), ('H', 3.0034), ('G', 2.4705),
+        ('B', 2.0720), ('F', 1.8121), ('Y', 1.7779), ('W', 1.2899),
+        ('K', 1.1016), ('V', 1.0074), ('X', 0.2902), ('Z', 0.2722),
+        ('J', 0.1965), ('Q', 0.1962),
+    ].iter().cloned().collect();
+
+    let mut char_counts: HashMap<char, i32> = HashMap::new();
+
+    s.chars()
+        .for_each(|c| {
+            let key = c.to_ascii_uppercase();
+            match char_counts.get_mut(&key) {
+                Some(count) => *count += 1,
+                None => {
+                    char_counts.insert(key, 1);
+                    ()
+                },
+            }
+        });
+
+    let diff: f32 = expected.iter()
+        .map(|(c, expectation)| {
+            let actual = char_counts.get(c).unwrap_or(&0);
+            let rate = 100.0 * *actual as f32 / s.len() as f32;
+            (rate - expectation).abs()
+        }).sum();
+
+    diff// / char_counts.len() as f32
+}
+
 fn main() {
     // Set 1 - Challenge 1
     let s = String::from("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d");
@@ -60,4 +98,20 @@ fn main() {
     let s = parse_hex_str(String::from("1c0111001f010100061a024b53535009181c"));
     let k = parse_hex_str(String::from("686974207468652062756c6c277320657965"));
     println!("{}", format_as_hex(fixed_xor(s, k)));
+
+    // Set 1 - Challenge 3
+    let result = (65..90).map(|k: u8| {
+        let s: Vec<u8> = parse_hex_str(String::from("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"));
+        let len = s.len();
+        let key: Vec<u8> = repeat(k).take(len).collect();
+        let result = String::from_utf8(fixed_xor(s, key));
+        match result {
+            Ok(r) => {
+                let score = score_string(r.clone());
+                (r, score)
+            },
+            _ => (String::new(), f32::MAX)
+        }
+    }).min_by(|(_, x), (_, y)| x.partial_cmp(y).unwrap()).unwrap().0;
+    println!("{}", result);
 }
