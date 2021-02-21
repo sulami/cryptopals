@@ -1,5 +1,6 @@
 fn parse_hex(c: char) -> u8 {
-    u8::from_str_radix(c.to_string().as_str(), 16).unwrap()
+    u8::from_str_radix(c.to_string().as_str(), 16)
+        .expect("Failed to parse hex char")
 }
 
 /// Parses a string of hex-pairs into u8s.
@@ -12,16 +13,16 @@ fn parse_hex_str(s: String) -> Vec<u8> {
         .collect()
 }
 
-fn format_as_base64(input: Vec<u8>) -> String {
+fn to_base64(input: Vec<u8>) -> String {
     let base64_table
         = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
         .as_bytes();
     input
         .iter()
         .map(|n| {
-            base64_table[usize::from(*n)] as char
+            base64_table[*n as usize] as char
         })
-        .collect::<String>()
+        .collect()
 }
 
 fn format_as_hex(input: Vec<u8>) -> String {
@@ -40,7 +41,7 @@ fn hex_to_base64(input: String) -> String {
         })
         .flatten()
         .collect();
-    format_as_base64(bs)
+    to_base64(bs)
 }
 
 fn fixed_xor(a: Vec<u8>, b: Vec<u8>) -> Vec<u8> {
