@@ -2,8 +2,14 @@ fn parse_hex(c: char) -> u8 {
     u8::from_str_radix(c.to_string().as_str(), 16).unwrap()
 }
 
+/// Parses a string of hex-pairs into u8s.
 fn parse_hex_str(s: String) -> Vec<u8> {
-    s.chars().map(parse_hex).collect()
+    s.chars()
+        .map(parse_hex)
+        .collect::<Vec<u8>>()
+        .chunks(2)
+        .map(|chunk| (chunk[0] << 4) | chunk[1])
+        .collect()
 }
 
 fn format_as_base64(input: Vec<u8>) -> String {
@@ -26,9 +32,11 @@ fn hex_to_base64(input: String) -> String {
     let bs: Vec<u8> = parse_hex_str(input)
         .chunks(3)
         .map(|chunk| {
-            let first = (chunk[0] << 2) | (chunk[1] >> 2);
-            let second = ((chunk[1] & 0b00000011) << 4) | chunk[2];
-            vec![first % 64, second % 64]
+            let first = chunk[0] >> 2;
+            let second = ((chunk[0] & 0b00000011) << 4) | (chunk[1] >> 4);
+            let third = ((chunk[1] & 0b00001111) << 2) | (chunk[2] >> 6);
+            let fourth = chunk[2] & 0b00111111;
+            vec![first % 64, second % 64, third % 64, fourth % 64]
         })
         .flatten()
         .collect();
