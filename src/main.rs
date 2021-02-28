@@ -89,16 +89,20 @@ fn score_string(s: String) -> f32 {
     diff// / char_counts.len() as f32
 }
 
-fn main() {
+fn s1c1() {
     // Set 1 - Challenge 1
     let s = String::from("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d");
     println!("{}", hex_to_base64(s));
+}
 
+fn s1c2() {
     // Set 1 - Challenge 2
     let s = parse_hex_str(String::from("1c0111001f010100061a024b53535009181c"));
     let k = parse_hex_str(String::from("686974207468652062756c6c277320657965"));
     println!("{}", format_as_hex(fixed_xor(s, k)));
+}
 
+fn s1c3() {
     // Set 1 - Challenge 3
     let result = (65..90).map(|k: u8| {
         let s: Vec<u8> = parse_hex_str(String::from("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"));
@@ -114,4 +118,10 @@ fn main() {
         }
     }).min_by(|(_, x), (_, y)| x.partial_cmp(y).unwrap()).unwrap().0;
     println!("{}", result);
+}
+
+fn main() {
+    s1c1();
+    s1c2();
+    s1c3();
 }
