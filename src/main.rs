@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::iter::repeat;
+use std::fs;
 
 fn parse_hex(c: char) -> u8 {
     u8::from_str_radix(c.to_string().as_str(), 16)
@@ -67,8 +68,10 @@ fn score_string(s: String) -> f32 {
 
     let mut char_counts: HashMap<char, i32> = HashMap::new();
 
-    s.chars()
-        .for_each(|c| {
+    let mut non_ascii = 0;
+
+    for c in s.chars() {
+        if c.is_ascii_alphanumeric() || c.is_ascii_whitespace() {
             let key = c.to_ascii_uppercase();
             match char_counts.get_mut(&key) {
                 Some(count) => *count += 1,
@@ -77,16 +80,44 @@ fn score_string(s: String) -> f32 {
                     ()
                 },
             }
-        });
+        } else {
+            non_ascii += 1;
+        }
+    }
 
-    let diff: f32 = expected.iter()
+    let diff: f32 = expected
+        .iter()
         .map(|(c, expectation)| {
             let actual = char_counts.get(c).unwrap_or(&0);
             let rate = 100.0 * *actual as f32 / s.len() as f32;
             (rate - expectation).abs()
-        }).sum();
+        })
+        .sum();
 
-    diff// / char_counts.len() as f32
+    diff + non_ascii as f32
+}
+
+fn best_string(strings: Vec<Vec<u8>>) -> Vec<u8> {
+    strings
+        .iter()
+        .min_by(|a, b| {
+            let x = String::from_utf8(a.to_vec());
+            let y = String::from_utf8(b.to_vec());
+            match (x, y) {
+                (Ok(s1), Ok(s2)) => {
+                    match score_string(s1).partial_cmp(&score_string(s2)) {
+                        Some(o) => o,
+                        _ => core::cmp::Ordering::Equal,
+                    }
+                },
+                (Ok(_), _) => core::cmp::Ordering::Less,
+                (_, Ok(_)) => core::cmp::Ordering::Greater,
+                _ => core::cmp::Ordering::Equal,
+            }
+        }
+    )
+        .unwrap()
+        .clone()
 }
 
 fn s1c1() {
@@ -120,8 +151,29 @@ fn s1c3() {
     println!("{}", result);
 }
 
+fn s1c4() {
+    // Set 1 - Challenge 4
+    let input = fs::read_to_string("resources/4.txt")
+        .expect("Failed to read 4.txt");
+    let results = input
+        .lines()
+        .map(|line| {
+            let parsed = parse_hex_str(String::from(line));
+            let mut results = vec![];
+            for k in 1..123 {
+                let key = repeat(k).take(60).map(|c| c as u8).collect();
+                results.push(fixed_xor(parsed.clone(), key));
+            }
+            results
+        })
+        .flatten()
+        .collect();
+    println!("{}", String::from_utf8(best_string(results)).unwrap());
+}
+
 fn main() {
     s1c1();
     s1c2();
     s1c3();
+    s1c4();
 }
