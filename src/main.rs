@@ -55,6 +55,14 @@ fn fixed_xor(a: Vec<u8>, b: Vec<u8>) -> Vec<u8> {
         .collect()
 }
 
+// fn hamming_distance(s1: String, s2: String) -> u32 {
+//     s1.as_bytes()
+//         .iter()
+//         .zip(s2.as_bytes())
+//         .map(|(a, b)| (a ^ b).count_ones())
+//         .fold(0, |a, b| a + b)
+// }
+
 fn score_string(s: String) -> f32 {
     let expected: HashMap<char, f32> = [
         ('E', 11.1607), ('A', 8.4966), ('R', 7.5809), ('I', 7.5448),
@@ -171,9 +179,19 @@ fn s1c4() {
     println!("{}", String::from_utf8(best_string(results)).unwrap());
 }
 
+fn s1c5() {
+    // Set 1 - Challenge 5
+    let input: Vec<u8> = String::from("Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal")
+        .bytes().collect();
+    let key: Vec<u8> = "ICE".bytes().cycle().take(input.len()).collect();
+    let result = fixed_xor(input, key);
+    println!("{}", format_as_hex(result));
+}
+
 fn main() {
     s1c1();
     s1c2();
     s1c3();
     s1c4();
+    s1c5();
 }
