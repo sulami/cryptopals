@@ -8,7 +8,7 @@ fn parse_hex(c: char) -> u8 {
 }
 
 /// Parses a string of hex-pairs into u8s.
-fn parse_hex_str(s: String) -> Vec<u8> {
+fn parse_hex_str(s: &str) -> Vec<u8> {
     s.chars()
         .map(parse_hex)
         .collect::<Vec<u8>>()
@@ -17,7 +17,7 @@ fn parse_hex_str(s: String) -> Vec<u8> {
         .collect()
 }
 
-fn to_base64(input: Vec<u8>) -> String {
+fn to_base64(input: &Vec<u8>) -> String {
     let base64_table
         = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
         .as_bytes();
@@ -29,11 +29,11 @@ fn to_base64(input: Vec<u8>) -> String {
         .collect()
 }
 
-fn format_as_hex(input: Vec<u8>) -> String {
+fn format_as_hex(input: &Vec<u8>) -> String {
     input.iter().map(|c| format!("{:x}", c)).collect()
 }
 
-fn hex_to_base64(input: String) -> String {
+fn hex_to_base64(input: &str) -> String {
     let bs: Vec<u8> = parse_hex_str(input)
         .chunks(3)
         .map(|chunk| {
@@ -45,10 +45,10 @@ fn hex_to_base64(input: String) -> String {
         })
         .flatten()
         .collect();
-    to_base64(bs)
+    to_base64(&bs)
 }
 
-fn fixed_xor(a: Vec<u8>, b: Vec<u8>) -> Vec<u8> {
+fn fixed_xor(a: &Vec<u8>, b: &Vec<u8>) -> Vec<u8> {
     a.iter()
         .zip(b)
         .map(|(x, y)| x ^ y)
@@ -63,7 +63,7 @@ fn fixed_xor(a: Vec<u8>, b: Vec<u8>) -> Vec<u8> {
 //         .fold(0, |a, b| a + b)
 // }
 
-fn score_string(s: String) -> f32 {
+fn score_string(s: &str) -> f32 {
     let expected: HashMap<char, f32> = [
         ('E', 11.1607), ('A', 8.4966), ('R', 7.5809), ('I', 7.5448),
         ('O', 7.1635), ('T', 6.9509), ('N', 6.6544), ('S', 5.7351),
@@ -113,7 +113,7 @@ fn best_string(strings: Vec<Vec<u8>>) -> Vec<u8> {
             let y = String::from_utf8(b.to_vec());
             match (x, y) {
                 (Ok(s1), Ok(s2)) => {
-                    match score_string(s1).partial_cmp(&score_string(s2)) {
+                    match score_string(&s1).partial_cmp(&score_string(&s2)) {
                         Some(o) => o,
                         _ => core::cmp::Ordering::Equal,
                     }
@@ -130,27 +130,27 @@ fn best_string(strings: Vec<Vec<u8>>) -> Vec<u8> {
 
 fn s1c1() {
     // Set 1 - Challenge 1
-    let s = String::from("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d");
+    let s = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d";
     println!("{}", hex_to_base64(s));
 }
 
 fn s1c2() {
     // Set 1 - Challenge 2
-    let s = parse_hex_str(String::from("1c0111001f010100061a024b53535009181c"));
-    let k = parse_hex_str(String::from("686974207468652062756c6c277320657965"));
-    println!("{}", format_as_hex(fixed_xor(s, k)));
+    let s = parse_hex_str("1c0111001f010100061a024b53535009181c");
+    let k = parse_hex_str("686974207468652062756c6c277320657965");
+    println!("{}", format_as_hex(&fixed_xor(&s, &k)));
 }
 
 fn s1c3() {
     // Set 1 - Challenge 3
     let result = (65..90).map(|k: u8| {
-        let s: Vec<u8> = parse_hex_str(String::from("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"));
+        let s: Vec<u8> = parse_hex_str("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736");
         let len = s.len();
         let key: Vec<u8> = repeat(k).take(len).collect();
-        let result = String::from_utf8(fixed_xor(s, key));
+        let result = String::from_utf8(fixed_xor(&s, &key));
         match result {
             Ok(r) => {
-                let score = score_string(r.clone());
+                let score = score_string(&r);
                 (r, score)
             },
             _ => (String::new(), f32::MAX)
@@ -166,11 +166,11 @@ fn s1c4() {
     let results = input
         .lines()
         .map(|line| {
-            let parsed = parse_hex_str(String::from(line));
+            let parsed = parse_hex_str(line);
             let mut results = vec![];
             for k in 1..123 {
                 let key = repeat(k).take(60).map(|c| c as u8).collect();
-                results.push(fixed_xor(parsed.clone(), key));
+                results.push(fixed_xor(&parsed, &key));
             }
             results
         })
@@ -184,8 +184,8 @@ fn s1c5() {
     let input: Vec<u8> = String::from("Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal")
         .bytes().collect();
     let key: Vec<u8> = "ICE".bytes().cycle().take(input.len()).collect();
-    let result = fixed_xor(input, key);
-    println!("{}", format_as_hex(result));
+    let result = fixed_xor(&input, &key);
+    println!("{}", format_as_hex(&result));
 }
 
 fn main() {
