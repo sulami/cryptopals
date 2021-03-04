@@ -2,22 +2,21 @@ use std::collections::HashMap;
 use std::iter::repeat;
 use std::fs;
 
-fn parse_hex(c: char) -> u8 {
+fn from_hex_char(c: char) -> u8 {
     u8::from_str_radix(c.to_string().as_str(), 16)
         .expect("Failed to parse hex char")
 }
 
-/// Parses a string of hex-pairs into u8s.
-fn parse_hex_str(s: &str) -> Vec<u8> {
+fn from_hex(s: &str) -> Vec<u8> {
     s.chars()
-        .map(parse_hex)
+        .map(from_hex_char)
         .collect::<Vec<u8>>()
         .chunks(2)
         .map(|chunk| (chunk[0] << 4) | chunk[1])
         .collect()
 }
 
-fn to_base64(input: &Vec<u8>) -> String {
+fn to_base64(input: &[u8]) -> String {
     let base64_table
         = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
         .as_bytes();
@@ -29,12 +28,12 @@ fn to_base64(input: &Vec<u8>) -> String {
         .collect()
 }
 
-fn format_as_hex(input: &Vec<u8>) -> String {
+fn to_hex(input: &[u8]) -> String {
     input.iter().map(|c| format!("{:x}", c)).collect()
 }
 
 fn hex_to_base64(input: &str) -> String {
-    let bs: Vec<u8> = parse_hex_str(input)
+    let bs: Vec<u8> = from_hex(input)
         .chunks(3)
         .map(|chunk| {
             let first = chunk[0] >> 2;
@@ -48,7 +47,7 @@ fn hex_to_base64(input: &str) -> String {
     to_base64(&bs)
 }
 
-fn fixed_xor(a: &Vec<u8>, b: &Vec<u8>) -> Vec<u8> {
+fn fixed_xor(a: &[u8], b: &[u8]) -> Vec<u8> {
     a.iter()
         .zip(b)
         .map(|(x, y)| x ^ y)
@@ -136,15 +135,15 @@ fn s1c1() {
 
 fn s1c2() {
     // Set 1 - Challenge 2
-    let s = parse_hex_str("1c0111001f010100061a024b53535009181c");
-    let k = parse_hex_str("686974207468652062756c6c277320657965");
-    println!("{}", format_as_hex(&fixed_xor(&s, &k)));
+    let s = from_hex("1c0111001f010100061a024b53535009181c");
+    let k = from_hex("686974207468652062756c6c277320657965");
+    println!("{}", to_hex(&fixed_xor(&s, &k)));
 }
 
 fn s1c3() {
     // Set 1 - Challenge 3
-    let result = (65..90).map(|k: u8| {
-        let s: Vec<u8> = parse_hex_str("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736");
+    let result = (b'0'..b'Z').map(|k: u8| {
+        let s: Vec<u8> = from_hex("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736");
         let len = s.len();
         let key: Vec<u8> = repeat(k).take(len).collect();
         let result = String::from_utf8(fixed_xor(&s, &key));
@@ -166,10 +165,13 @@ fn s1c4() {
     let results = input
         .lines()
         .map(|line| {
-            let parsed = parse_hex_str(line);
+            let parsed = from_hex(line);
             let mut results = vec![];
-            for k in 1..123 {
-                let key = repeat(k).take(60).map(|c| c as u8).collect();
+            for k in b'0'..b'Z' {
+                let key: Vec<u8> = repeat(k)
+                    .take(60)
+                    .map(|c| c as u8)
+                    .collect();
                 results.push(fixed_xor(&parsed, &key));
             }
             results
@@ -185,7 +187,7 @@ fn s1c5() {
         .bytes().collect();
     let key: Vec<u8> = "ICE".bytes().cycle().take(input.len()).collect();
     let result = fixed_xor(&input, &key);
-    println!("{}", format_as_hex(&result));
+    println!("{}", to_hex(&result));
 }
 
 fn main() {
