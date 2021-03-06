@@ -62,23 +62,29 @@ fn from_base64(s: &str) -> Vec<u8> {
     result
 }
 
-// Test cases with different padding from Wikipedia:
-// println!("{}", from_base64("YW55IGNhcm5hbCBwbGVhcw==")
-//             .iter()
-//             .map(|&b| b as char)
-//             .collect::<String>());
-// println!("{}", from_base64("YW55IGNhcm5hbCBwbGVhc3U=")
-//             .iter()
-//             .map(|&b| b as char)
-//             .collect::<String>());
-// println!("{}", from_base64("YW55IGNhcm5hbCBwbGVhc3Vy")
-//             .iter()
-//             .map(|&b| b as char)
-//             .collect::<String>());
-// println!("{}", from_base64("YW55IGNhcm5hbCBwbGVhc3VyZQ==")
-//             .iter()
-//             .map(|&b| b as char)
-//             .collect::<String>());
+#[test]
+fn from_base64_test() {
+    assert_eq!("any carnal pleas", from_base64("YW55IGNhcm5hbCBwbGVhcw==")
+               .iter()
+               .map(|&b| b as char)
+               .collect::<String>());
+    assert_eq!("any carnal pleasu", from_base64("YW55IGNhcm5hbCBwbGVhc3U=")
+               .iter()
+               .map(|&b| b as char)
+               .collect::<String>());
+    assert_eq!("any carnal pleasur", from_base64("YW55IGNhcm5hbCBwbGVhc3Vy")
+               .iter()
+               .map(|&b| b as char)
+               .collect::<String>());
+    assert_eq!("any carnal pleasure", from_base64("YW55IGNhcm5hbCBwbGVhc3VyZQ==")
+               .iter()
+               .map(|&b| b as char)
+               .collect::<String>());
+    assert_eq!("any carnal pleasure.", from_base64("YW55IGNhcm5hbCBwbGVhc3VyZS4=")
+               .iter()
+               .map(|&b| b as char)
+               .collect::<String>());
+}
 
 fn to_base64(input: &[u8]) -> String {
     let mut input = input.to_vec();
@@ -119,12 +125,14 @@ fn to_base64(input: &[u8]) -> String {
     String::from_utf8(result).unwrap()
 }
 
-// Test cases with different padding from Wikipedia:
-// println!("{}", to_base64(b"any carnal pleasure."));
-// println!("{}", to_base64(b"any carnal pleasure"));
-// println!("{}", to_base64(b"any carnal pleasur"));
-// println!("{}", to_base64(b"any carnal pleasu"));
-// println!("{}", to_base64(b"any carnal pleas"));
+#[test]
+fn to_base64_test() {
+    assert_eq!("YW55IGNhcm5hbCBwbGVhc3VyZS4=", to_base64(b"any carnal pleasure."));
+    assert_eq!("YW55IGNhcm5hbCBwbGVhc3VyZQ==", to_base64(b"any carnal pleasure"));
+    assert_eq!("YW55IGNhcm5hbCBwbGVhc3Vy", to_base64(b"any carnal pleasur"));
+    assert_eq!("YW55IGNhcm5hbCBwbGVhc3U=", to_base64(b"any carnal pleasu"));
+    assert_eq!("YW55IGNhcm5hbCBwbGVhcw==", to_base64(b"any carnal pleas"));
+}
 
 fn fixed_xor(a: &[u8], b: &[u8]) -> Vec<u8> {
     a.iter()
