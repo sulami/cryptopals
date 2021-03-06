@@ -148,6 +148,11 @@ fn hamming_distance(s1: &[u8], s2: &[u8]) -> usize {
         .sum::<u32>() as usize
 }
 
+#[test]
+fn hamming_distance_test() {
+    assert_eq!(37, hamming_distance(b"this is a test", b"wokka wokka!!!"));
+}
+
 fn score_string(s: &[u8]) -> usize {
     let expected: HashMap<u8, i32> = [
         (b' ', 130000),
@@ -272,8 +277,6 @@ fn s1c5() {
 
 fn s1c6() {
     // Set 1 - Challenge 6
-    println!("1-6: 37? {}", hamming_distance(b"this is a test", b"wokka wokka!!!"));
-
     let raw_input = fs::read_to_string("resources/6.txt")
         .expect("Failed to read 6.txt");
     let input = from_base64(&raw_input);
@@ -324,7 +327,7 @@ fn s1c6() {
         .collect();
 
     let decrypted = fixed_xor(&input, &repeated_key);
-    println!("{}", String::from_utf8(decrypted).unwrap());
+    println!("1-6: {}", String::from_utf8(decrypted).unwrap());
 }
 
 fn main() {
