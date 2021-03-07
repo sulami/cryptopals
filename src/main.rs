@@ -2,156 +2,17 @@ use std::collections::HashMap;
 use std::fs;
 use std::iter::repeat;
 
-fn from_hex_char(c: char) -> u8 {
-    u8::from_str_radix(c.to_string().as_str(), 16)
-        .expect("Failed to parse hex char")
-}
+mod base64;
+mod hex;
+mod util;
 
-fn from_hex(s: &str) -> Vec<u8> {
-    s.chars()
-        .map(from_hex_char)
-        .collect::<Vec<u8>>()
-        .chunks(2)
-        .map(|chunk| (chunk[0] << 4) | chunk[1])
-        .collect()
-}
+use base64::{from_base64, to_base64};
+use hex::{from_hex, to_hex};
+use util::{fixed_xor, hamming_distance, transpose};
 
-fn to_hex(input: &[u8]) -> String {
-    input.iter()
-        .map(|c| format!("{:02x}", c))
-        .collect()
-}
-
-const BASE64_TABLE: &[u8]
-    = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-fn from_base64(s: &str) -> Vec<u8> {
-    let mut padding = 0;
-    let mut result: Vec<u8> = s
-        .bytes()
-        .filter(|&b| b != b' ')
-        .filter(|&b| b != b'\n')
-        .map(|b| {
-            if b == b'=' {
-                padding += 1;
-                0
-            } else {
-                let mut idx = 0;
-                while idx < BASE64_TABLE.len() {
-                    if b == BASE64_TABLE[idx] {
-                        break
-                    }
-                    idx += 1;
-                }
-                idx as u8
-            }
-        })
-        .collect::<Vec<u8>>()
-        .chunks(4)
-        .map(|chunk| {
-            // aaaaaabbbbbbccccccdddddd
-            // aaaaaaaabbbbbbbbcccccccc
-            let first = chunk[0] << 2 | chunk[1] >> 4;
-            let second = chunk[1] << 4 | chunk[2] >> 2;
-            let third = chunk[2] << 6 | chunk[3];
-            vec![first, second, third]
-        })
-        .flatten()
-        .collect();
-    result.truncate(result.len() - padding);
-    result
-}
-
-#[test]
-fn from_base64_test() {
-    assert_eq!("any carnal pleas", from_base64("YW55IGNhcm5hbCBwbGVhcw==")
-               .iter()
-               .map(|&b| b as char)
-               .collect::<String>());
-    assert_eq!("any carnal pleasu", from_base64("YW55IGNhcm5hbCBwbGVhc3U=")
-               .iter()
-               .map(|&b| b as char)
-               .collect::<String>());
-    assert_eq!("any carnal pleasur", from_base64("YW55IGNhcm5hbCBwbGVhc3Vy")
-               .iter()
-               .map(|&b| b as char)
-               .collect::<String>());
-    assert_eq!("any carnal pleasure", from_base64("YW55IGNhcm5hbCBwbGVhc3VyZQ==")
-               .iter()
-               .map(|&b| b as char)
-               .collect::<String>());
-    assert_eq!("any carnal pleasure.", from_base64("YW55IGNhcm5hbCBwbGVhc3VyZS4=")
-               .iter()
-               .map(|&b| b as char)
-               .collect::<String>());
-}
-
-fn to_base64(input: &[u8]) -> String {
-    let mut input = input.to_vec();
-    let padding = input.len() % 3;
-    // Pad the bytes so that we have a number divisible by 3. The last
-    // chunk might have some zeroes.
-    if 0 < padding {
-        for _ in padding..3 {
-            input.push(0);
-        }
-    };
-    let mut result: Vec<u8> = input
-        .chunks(3)
-        .map(|chunk| {
-            // aaaaaaaabbbbbbbbcccccccc
-            // aaaaaabbbbbbccccccdddddd
-            let first = chunk[0] >> 2;
-            let second = (chunk[0] & 0b00000011) << 4 | chunk[1] >> 4;
-            let third = (chunk[1] & 0b00001111) << 2 | chunk[2] >> 6;
-            let fourth = chunk[2] & 0b00111111;
-            vec![first % 64, second % 64, third % 64, fourth % 64]
-        })
-        .flatten()
-        .map(|n| {
-            BASE64_TABLE[n as usize]
-        })
-        .collect();
-    // Add padding to the end, where we had filled in zeroes.
-    // Unintuitively, this is backwards, if we filled in two bytes of
-    // padding, we write out one padding character.
-    let l = result.len();
-    if padding == 2 {
-        result[l-1] = b'=';
-    } else if padding == 1 {
-        result[l-1] = b'=';
-        result[l-2] = b'=';
-    }
-    String::from_utf8(result).unwrap()
-}
-
-#[test]
-fn to_base64_test() {
-    assert_eq!("YW55IGNhcm5hbCBwbGVhc3VyZS4=", to_base64(b"any carnal pleasure."));
-    assert_eq!("YW55IGNhcm5hbCBwbGVhc3VyZQ==", to_base64(b"any carnal pleasure"));
-    assert_eq!("YW55IGNhcm5hbCBwbGVhc3Vy", to_base64(b"any carnal pleasur"));
-    assert_eq!("YW55IGNhcm5hbCBwbGVhc3U=", to_base64(b"any carnal pleasu"));
-    assert_eq!("YW55IGNhcm5hbCBwbGVhcw==", to_base64(b"any carnal pleas"));
-}
-
-fn fixed_xor(a: &[u8], b: &[u8]) -> Vec<u8> {
-    a.iter()
-        .zip(b)
-        .map(|(x, y)| x ^ y)
-        .collect()
-}
-
-fn hamming_distance(s1: &[u8], s2: &[u8]) -> usize {
-    s1.iter()
-        .zip(s2)
-        .map(|(a, b)| (*a ^ *b).count_ones())
-        .sum::<u32>() as usize
-}
-
-#[test]
-fn hamming_distance_test() {
-    assert_eq!(37, hamming_distance(b"this is a test", b"wokka wokka!!!"));
-}
+// TODO
+// Should probably try to improve performance of score_string.
+// Might be a good idea to figure out how to profile Rust.
 
 fn score_string(s: &[u8]) -> usize {
     let expected: HashMap<u8, i32> = [
@@ -203,21 +64,6 @@ fn best_string<'a>(strings: &'a Vec<Vec<u8>>) -> &'a[u8] {
         .unwrap()
 }
 
-fn transpose<T>(v: Vec<Vec<T>>, fill: T) -> Vec<Vec<T>> where T: Clone {
-    assert!(!v.is_empty());
-    (0..v[0].len())
-        .map(|i| v.iter()
-             .map(|inner| {
-                 if i < inner.len() {
-                     inner[i].clone()
-                 } else {
-                     fill.clone()
-                 }
-             })
-             .collect::<Vec<T>>())
-        .collect()
-}
-
 fn s1c1() {
     // Set 1 - Challenge 1
     let s = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d";
@@ -248,19 +94,17 @@ fn s1c4() {
     // Set 1 - Challenge 4
     let input = fs::read_to_string("resources/4.txt")
         .expect("Failed to read 4.txt");
+    let keys: Vec<Vec<u8>> = (b'0'..b'Z')
+        .map(move |k| repeat(k).take(60).collect())
+        .collect();
     let results = input
         .lines()
         .map(from_hex)
-        .map(|line| {
-            let mut decrypted = vec![];
-            for k in b'0'..b'Z' {
-                let key: Vec<u8> = repeat(k)
-                    .take(line.len())
-                    .collect();
-                decrypted.push(fixed_xor(&line, &key));
-            }
-            decrypted
-        })
+        .map(|line| keys
+             .iter()
+             .map(|key| fixed_xor(&line, key))
+             .collect::<Vec<Vec<u8>>>()
+        )
         .flatten()
         .collect();
     let result = best_string(&results);
