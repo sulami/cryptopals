@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::iter::repeat;
 
+mod aes;
 mod base64;
 mod hex;
 mod util;
