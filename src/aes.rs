@@ -1,5 +1,4 @@
-type Field = Vec<Vec<u8>>;
-
+type Field = [u8; 16];
 
 // fn expand_key() {
     
@@ -9,28 +8,34 @@ type Field = Vec<Vec<u8>>;
     
 // }
 
-fn shift_rows(f: &mut Field) {
-    for row in 1..4 {
-        for _ in 0..row {
-            let elm = f[row].remove(0);
-            f[row].push(elm);
-        }
-    }
+fn shift_rows(field: &mut Field) {
+    let [
+        a, b, c, d,
+        e, f, g, h,
+        i, j, k, l,
+        m, n, o, p,
+    ] = field;
+    *field = [
+        *a, *b, *c, *d,
+        *f, *g, *h, *e,
+        *k, *l, *i, *j,
+        *p, *m, *n, *o,
+    ]
 }
 
 #[test]
 fn shift_rows_test() {
-    let mut input = vec![
-        vec![1, 2, 3, 4],
-        vec![3, 4, 5, 6],
-        vec![7, 8, 9, 10],
-        vec![11, 12, 13, 14],
+    let mut input = [
+        1, 2, 3, 4,
+        3, 4, 5, 6,
+        7, 8, 9, 10,
+        11, 12, 13, 14,
     ];
-    let expected = vec![
-        vec![1, 2, 3, 4],
-        vec![4, 5, 6, 3],
-        vec![9, 10, 7, 8],
-        vec![14, 11, 12, 13],
+    let expected = [
+        1, 2, 3, 4,
+        4, 5, 6, 3,
+        9, 10, 7, 8,
+        14, 11, 12, 13,
     ];
     shift_rows(&mut input);
     assert_eq!(expected, input);
