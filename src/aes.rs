@@ -1,4 +1,4 @@
-type Field = [u8; 16];
+type State = [u8; 16];
 
 const ROUND_CONSTANTS: [u32; 10] = [
     0x01000000,
@@ -94,14 +94,14 @@ fn expand_key_test() {
     assert_eq!(0xb6630ca6, keys[10][3]);
 }
 
-fn shift_rows(field: &mut Field) {
+fn shift_rows(state: &mut State) {
     let [
         a, b, c, d,
         e, f, g, h,
         i, j, k, l,
         m, n, o, p,
-    ] = field;
-    *field = [
+    ] = state;
+    *state = [
         *a, *b, *c, *d,
         *f, *g, *h, *e,
         *k, *l, *i, *j,
@@ -127,9 +127,14 @@ fn shift_rows_test() {
     assert_eq!(expected, input);
 }
 
-// fn mix_columns() {
+fn mix_columns() {
     
-// }
+}
+
+#[test]
+fn mix_columns_test() {
+ 
+}
 
 // fn add_round_key() {
     
