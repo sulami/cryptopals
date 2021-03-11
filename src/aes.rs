@@ -112,16 +112,16 @@ fn shift_rows(state: &mut State) {
 #[test]
 fn shift_rows_test() {
     let mut input = [
-        1, 2, 3, 4,
-        3, 4, 5, 6,
-        7, 8, 9, 10,
-        11, 12, 13, 14,
+        0xd4, 0xe0, 0xb8, 0x1e,
+        0x27, 0xbf, 0xb4, 0x41,
+        0x11, 0x98, 0x5d, 0x52,
+        0xae, 0xf1, 0xe5, 0x30,
     ];
     let expected = [
-        1, 2, 3, 4,
-        4, 5, 6, 3,
-        9, 10, 7, 8,
-        14, 11, 12, 13,
+        0xd4, 0xe0, 0xb8, 0x1e,
+        0xbf, 0xb4, 0x41, 0x27,
+        0x5d, 0x52, 0x11, 0x98,
+        0x30, 0xae, 0xf1, 0xe5,
     ];
     shift_rows(&mut input);
     assert_eq!(expected, input);
