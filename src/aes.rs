@@ -127,13 +127,43 @@ fn shift_rows_test() {
     assert_eq!(expected, input);
 }
 
-fn mix_columns() {
-    
+fn mix_columns(state: &mut State) {
+    for ncol in 0..4 {
+        let column = [
+            state[0*4+ncol],
+            state[1*4+ncol],
+            state[2*4+ncol],
+            state[3*4+ncol],
+        ];
+        let mut double_column = column;
+        for nrow in 0..4 {
+            // Double each value, clever hack from Wikipedia.
+            let h = (column[nrow] >> 7) & 0b00000001;
+            double_column[nrow] = (column[nrow] << 1) ^ (h * 0x1b);
+        }
+        state[0*4+ncol] = double_column[0] ^ column[3] ^ column[2] ^ double_column[1] ^ column[1];
+        state[1*4+ncol] = double_column[1] ^ column[0] ^ column[3] ^ double_column[2] ^ column[2];
+        state[2*4+ncol] = double_column[2] ^ column[1] ^ column[0] ^ double_column[3] ^ column[3];
+        state[3*4+ncol] = double_column[3] ^ column[2] ^ column[1] ^ double_column[0] ^ column[0];
+    }
 }
 
 #[test]
 fn mix_columns_test() {
- 
+    let mut input = [
+        0xd4, 0xe0, 0xb8, 0x1e,
+        0xbf, 0xb4, 0x41, 0x27,
+        0x5d, 0x52, 0x11, 0x98,
+        0x30, 0xae, 0xf1, 0xe5,
+    ];
+    let expected = [
+        0x04, 0xe0, 0x48, 0x28,
+        0x66, 0xcb, 0xf8, 0x06,
+        0x81, 0x19, 0xd3, 0x26,
+        0xe5, 0x9a, 0x7a, 0x4c,
+    ];
+    mix_columns(&mut input);
+    assert_eq!(expected, input);
 }
 
 // fn add_round_key() {
