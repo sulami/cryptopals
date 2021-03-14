@@ -1,4 +1,7 @@
+use std::convert::TryInto;
+
 type State = [u8; 16];
+type Key = [u32; 4];
 
 const ROUND_CONSTANTS: [u32; 10] = [
     0x01000000,
@@ -52,7 +55,7 @@ fn sub_bytes_test() {
     assert_eq!(0xd4e0b81e, sub_bytes(0x19a09ae9));
 }
 
-fn expand_key(key: &[u32; 4]) -> Vec<Vec<u32>> {
+fn expand_key(key: &Key) -> Vec<Key> {
     // the first key is the original key
     // from then for each key:
     //   for the first word:
@@ -77,12 +80,14 @@ fn expand_key(key: &[u32; 4]) -> Vec<Vec<u32>> {
             keys[k].push(previous_word ^ previous_key_word);
         }
     }
-    keys
+    keys.iter()
+        .map(|k| k.as_slice().try_into().expect("Invalid key") )
+        .collect()
 }
 
 #[test]
 fn expand_key_test() {
-    let start_key: [u32; 4] = [0x2b7e1516, 0x28aed2a6, 0xabf71588, 0x09cf4f3c];
+    let start_key: Key = [0x2b7e1516, 0x28aed2a6, 0xabf71588, 0x09cf4f3c];
     let keys = expand_key(&start_key);
     assert_eq!(11, keys.len());
     // Second key set.
@@ -166,21 +171,92 @@ fn mix_columns_test() {
     assert_eq!(expected, input);
 }
 
-// fn add_round_key() {
-    
-// }
+fn add_round_key(state: &mut State, key: Key) {
+    for ncol in 0..4 {
+        let key_words: [u8; 4] = key[ncol].to_be_bytes();
+        let column = [
+            state[0*4+ncol],
+            state[1*4+ncol],
+            state[2*4+ncol],
+            state[3*4+ncol],
+        ];
+        (0..4).for_each(|i| state[i*4+ncol] = column[i] ^ key_words[i]);
+    }
+}
 
-// NB Turning a &[u8] to u32:
-// let num = u32::from_be_bytes(bytes)
+#[test]
+fn add_round_key_test() {
+    let mut input = [
+        0x04, 0xe0, 0x48, 0x28,
+        0x66, 0xcb, 0xf8, 0x06,
+        0x81, 0x19, 0xd3, 0x26,
+        0xe5, 0x9a, 0x7a, 0x4c,
+    ];
+    let key: Key = [0xa0fafe17, 0x88542cb1, 0x23a33939, 0x2a6c7605];
+    let expected = [
+        0xa4, 0x68, 0x6b, 0x02,
+        0x9c, 0x9f, 0x5b, 0x6a,
+        0x7f, 0x35, 0xea, 0x50,
+        0xf2, 0x2b, 0x43, 0x49,
+    ];
+    add_round_key(&mut input, key);
+    assert_eq!(expected, input);
+}
 
 #[allow(dead_code)]
-pub fn encrypt(key: [u32; 4]) {
+pub fn encrypt(input: State, key: Key) -> State {
+    let mut state = input;
     let keys = expand_key(&key);
-    // add round key
-    // for each round bar one:
-    // - sub bytes
-    // - shift rows
-    // - mix columns
-    // - add round key
-    // last round the same, but skip the round key
+
+    add_round_key(&mut state, keys[0]);
+
+    for round in 1..10 {
+        for column in 0..4 {
+            let new_column = sub_bytes(
+                u32::from_be_bytes([
+                    state[0*4+column],
+                    state[1*4+column],
+                    state[2*4+column],
+                    state[3*4+column],
+                ])
+            ).to_be_bytes();
+            (0..4).for_each(|i| state[i*4+column] = new_column[i]);
+        }
+        shift_rows(&mut state);
+        mix_columns(&mut state);
+        add_round_key(&mut state, keys[round]);
+    }
+
+    for column in 0..4 {
+        let new_column = sub_bytes(
+            u32::from_be_bytes([
+                state[0*4+column],
+                state[1*4+column],
+                state[2*4+column],
+                state[3*4+column],
+            ])
+        ).to_be_bytes();
+        (0..4).for_each(|i| state[i*4+column] = new_column[i]);
+    }
+    shift_rows(&mut state);
+    add_round_key(&mut state, keys[10]);
+    state
+}
+
+#[test]
+fn encrypt_test() {
+    let input = [
+        0x32, 0x88, 0x31, 0xe0,
+        0x43, 0x5a, 0x31, 0x37,
+        0xf6, 0x30, 0x98, 0x07,
+        0xa8, 0x8d, 0xa2, 0x34,
+    ];
+    let key: Key = [0x2b7e1516, 0x28aed2a6, 0xabf71588, 0x09cf4f3c];
+    let expected = [
+        0x39, 0x02, 0xdc, 0x19,
+        0x25, 0xdc, 0x11, 0x6a,
+        0x84, 0x09, 0x85, 0x0b,
+        0x1d, 0xfb, 0x97, 0x32,
+    ];
+    assert_eq!(expected, encrypt(input, key));
 }
