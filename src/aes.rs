@@ -203,30 +203,7 @@ fn add_round_key_test() {
     assert_eq!(expected, input);
 }
 
-#[allow(dead_code)]
-pub fn encrypt(input: State, key: Key) -> State {
-    let mut state = input;
-    let keys = expand_key(&key);
-
-    add_round_key(&mut state, keys[0]);
-
-    for round in 1..10 {
-        for column in 0..4 {
-            let new_column = sub_bytes(
-                u32::from_be_bytes([
-                    state[0*4+column],
-                    state[1*4+column],
-                    state[2*4+column],
-                    state[3*4+column],
-                ])
-            ).to_be_bytes();
-            (0..4).for_each(|i| state[i*4+column] = new_column[i]);
-        }
-        shift_rows(&mut state);
-        mix_columns(&mut state);
-        add_round_key(&mut state, keys[round]);
-    }
-
+fn sub_column_bytes(state: &mut State) {
     for column in 0..4 {
         let new_column = sub_bytes(
             u32::from_be_bytes([
@@ -238,8 +215,25 @@ pub fn encrypt(input: State, key: Key) -> State {
         ).to_be_bytes();
         (0..4).for_each(|i| state[i*4+column] = new_column[i]);
     }
+}
+
+pub fn encrypt(input: State, key: Key) -> State {
+    let mut state = input;
+    let keys = expand_key(&key);
+
+    add_round_key(&mut state, keys[0]);
+
+    for round in 1..10 {
+        sub_column_bytes(&mut state);
+        shift_rows(&mut state);
+        mix_columns(&mut state);
+        add_round_key(&mut state, keys[round]);
+    }
+
+    sub_column_bytes(&mut state);
     shift_rows(&mut state);
     add_round_key(&mut state, keys[10]);
+
     state
 }
 
