@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::fs;
 use std::iter::repeat;
 
@@ -7,6 +8,7 @@ mod base64;
 mod hex;
 mod util;
 
+use aes::{build_state, decrypt};
 use base64::{from_base64, to_base64};
 use hex::{from_hex, to_hex};
 use util::{fixed_xor, hamming_distance, transpose};
@@ -175,6 +177,28 @@ fn s1c6() {
     println!("1-6: {}", String::from_utf8(decrypted).unwrap());
 }
 
+fn s1c7() {
+    // Set 1 - Challenge 6
+    let raw_input = fs::read_to_string("resources/7.txt")
+        .expect("Failed to read 7.txt");
+    let input = from_base64(&raw_input);
+    let key = b"YELLOW SUBMARINE"
+        .chunks(4)
+        .map(|word| u32::from_be_bytes(word.try_into().unwrap()))
+        .collect::<Vec<u32>>()
+        .as_slice()
+        .try_into()
+        .unwrap();
+    let decrypted: Vec<u8> = input
+        .chunks(16)
+        .flat_map(|chunk| {
+            let transposed = decrypt(build_state(chunk), key);
+            build_state(&transposed[..]).to_vec()
+        })
+        .collect();
+    println!("1-7: {}", String::from_utf8(decrypted).unwrap());
+}
+
 fn main() {
     s1c1();
     s1c2();
@@ -182,4 +206,5 @@ fn main() {
     s1c4();
     s1c5();
     s1c6();
+    s1c7();
 }

@@ -428,6 +428,7 @@ fn inv_sub_column_bytes(state: &mut State) {
     }
 }
 
+#[allow(dead_code)]
 pub fn encrypt(input: State, key: Key) -> State {
     let mut state = input;
     let keys = expand_key(&key);
@@ -497,4 +498,22 @@ fn round_trip_test() {
     let key: Key = [0x2b7e1516, 0x28aed2a6, 0xabf71588, 0x09cf4f3c];
     let encrypted = encrypt(input, key);
     assert_eq!(input, decrypt(encrypted, key));
+}
+
+pub fn build_state(input: &[u8]) -> State {
+    if let [
+        a, b, c, d,
+        e, f, g, h,
+        i, j, k, l,
+        m, n, o, p,
+    ] = input {
+        [
+            *a, *e, *i, *m,
+            *b, *f, *j, *n,
+            *c, *g, *k, *o,
+            *d, *h, *l, *p,
+        ]
+    } else {
+        panic!("Invalid state input")
+    }
 }
